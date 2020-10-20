@@ -22,12 +22,20 @@ NewProjectAudioProcessor::NewProjectAudioProcessor()
                        ), apvts (*this, nullptr, "Parameters", createParameters())
 #endif
 {
-    apvts.state.addListener (this);
-    init();
+    apvts.addParameterListener("RATE", this);
+    apvts.addParameterListener("DEPTH", this);
+    apvts.addParameterListener("CENTREDELAY", this);
+    apvts.addParameterListener("FEEDBACK", this);
+    apvts.addParameterListener("MIX", this);
 }
 
 NewProjectAudioProcessor::~NewProjectAudioProcessor()
 {
+    apvts.removeParameterListener("RATE", this);
+    apvts.removeParameterListener("DEPTH", this);
+    apvts.removeParameterListener("CENTREDELAY", this);
+    apvts.removeParameterListener("FEEDBACK", this);
+    apvts.removeParameterListener("MIX", this);
 }
 
 //==============================================================================
@@ -95,12 +103,13 @@ void NewProjectAudioProcessor::changeProgramName (int index, const juce::String&
 //==============================================================================
 void NewProjectAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
-    prepare(sampleRate, samplesPerBlock);
-    update();
-    reset();
-    isActive = true;
+    
+    juce::dsp::ProcessSpec spec;
+    spec.maximumBlockSize = samplesPerBlock;
+    spec.sampleRate = sampleRate;
+    
+    chorus.prepare (spec);
+    chorus.reset();
 }
 
 void NewProjectAudioProcessor::releaseResources()
@@ -136,12 +145,6 @@ bool NewProjectAudioProcessor::isBusesLayoutSupported (const BusesLayout& layout
 void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     
-    if (! isActive)
-        return;
-    
-    if (mustUpdateProcessing)
-        update();
-    
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
@@ -161,12 +164,17 @@ void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
-
-        // ..do something to the data...
-    }
+//    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+//    {
+//        auto* channelData = buffer.getWritePointer (channel);
+//
+//        // ..do something to the data...
+//    }
+    
+    juce::dsp::AudioBlock<float> sampleBlock (buffer);
+    chorus.process (juce::dsp::ProcessContextReplacing<float> (sampleBlock));
+    
+    
 }
 
 //==============================================================================
@@ -200,29 +208,54 @@ void NewProjectAudioProcessor::setStateInformation (const void* data, int sizeIn
     apvts.replaceState (copyState);
 }
 
-
-void NewProjectAudioProcessor::userChangedParameter()
-{
-    mustUpdateProcessing = true;
-}
-
-void NewProjectAudioProcessor::update()
-{
-    mustUpdateProcessing = false;
-}
-
-juce::AudioProcessorValueTreeState::ParameterLayout NewProjectAudioProcessor::createParameters()
-{
-    std::vector<std::unique_ptr<juce::RangedAudioParameter>> parameters;
-    
-    // create your parameters
-    
-    return { parameters.begin(), parameters.end() };
-}
-
 //==============================================================================
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new NewProjectAudioProcessor();
 }
+
+
+void NewProjectAudioProcessor::reset()
+{
+    chorus.reset();
+}
+
+void NewProjectAudioProcessor::parameterChanged (const juce::String& parameterID, float newValue)
+{
+    if (parameterID == "RATE")
+        chorus.setRate (newValue);
+    
+    if (parameterID == "DEPTH")
+        chorus.setDepth (newValue);
+    
+    if (parameterID == "CENTREDELAY")
+        chorus.setCentreDelay (newValue);
+    
+    if (parameterID == "FEEDBACK")
+        chorus.setFeedback (newValue);
+    
+    if (parameterID == "MIX")
+        chorus.setMix (newValue);
+}
+
+
+juce::AudioProcessorValueTreeState::ParameterLayout NewProjectAudioProcessor::createParameters()
+{
+    juce::AudioProcessorValueTreeState::ParameterLayout parameters;
+    
+    using Range = juce::NormalisableRange<float>;
+    
+    parameters.add (std::make_unique<juce::AudioParameterInt>("RATE", "Rate", 0, 99, 0));
+    parameters.add (std::make_unique<juce::AudioParameterFloat>("DEPTH", "Depth", Range { 0.0f, 1.0f, 0.01f }, 0.0f));
+    parameters.add (std::make_unique<juce::AudioParameterInt>("CENTREDELAY", "Centre Delay", 0, 100, 0));
+    parameters.add (std::make_unique<juce::AudioParameterFloat>("FEEDBACK", "Feedback", Range { -1.0f, 1.0f, 0.01f }, 0.0f));
+    parameters.add (std::make_unique<juce::AudioParameterFloat>("MIX", "Mix", Range { 0.0f, 1.0f, 0.01f }, 0.0f));
+
+    
+    
+    // create your parameters
+    
+    
+}
+

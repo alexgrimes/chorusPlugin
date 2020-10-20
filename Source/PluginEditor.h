@@ -27,6 +27,30 @@ public:
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
+    
+    juce::Slider rateSlider;
+    juce::Slider depthSlider;
+    juce::Slider centreDelaySlider;
+    juce::Slider feedbackSlider;
+    juce::Slider mixSlider;
+    
+    juce::Label rateLabel { "Rate", "Rate" };
+    juce::Label depthLabel { "Depth", "Depth" };
+    juce::Label delayLabel { "Delay", "Delay" };
+    juce::Label feedbackLabel { "Feedback", "Feedback" };
+    juce::Label mixLabel { "Mix", "Mix" };
+    juce::Label pluginTitle { "Plug-in Title", "Chorus" };
+    
+    using Attachment = std::unique_ptr<juce::SliderParameterAttachment>;
+    
+    Attachment rateSliderAttachment;
+    Attachment depthSliderAttachment;
+    Attachment centreDelaySliderAttachment;
+    Attachment feedbackSliderAttachment;
+    Attachment mixSliderAttachment;
+    
+    juce::Font currentFont;
+    
     NewProjectAudioProcessor& audioProcessor;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NewProjectAudioProcessorEditor)

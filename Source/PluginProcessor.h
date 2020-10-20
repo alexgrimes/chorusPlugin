@@ -14,7 +14,7 @@
 /**
 */
 class NewProjectAudioProcessor  : public juce::AudioProcessor,
-                                  public juce::ValueTree::Listener
+                                  public juce::AudioProcessorValueTreeState::Listener
 {
 public:
     //==============================================================================
@@ -55,30 +55,22 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     //==============================================================================
-    void init();
-    void prepare (double sampleRate, int samplesPerBlock);
-    void update();
+    
     void reset() override;
     
-    
-    
     juce::AudioProcessorValueTreeState apvts;
-    juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
-    
-    void userChangedParameter();
-    
     
     
 private:
     
-    bool mustUpdateProcessing { false };
+    juce::dsp::Chorus<float> chorus;
     
-    bool isActive { false };
+    juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
     
-    void valueTreePropertyChanged (juce::ValueTree& tree, const juce::Identifier& property) override
-    {
-        mustUpdateProcessing = true;
-    }
+    juce::AudioPlayHead::CurrentPositionInfo positionInfo;
+    int bpm { 0 };
+    
+    void parameterChanged (const juce::String& parameterID, float newValue) override;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NewProjectAudioProcessor)
