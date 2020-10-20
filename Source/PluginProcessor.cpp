@@ -19,9 +19,10 @@ NewProjectAudioProcessor::NewProjectAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ), apvts (*this, nullptr, "Parameters", createParameters())
 #endif
 {
+    apvts.state.addListener (this);
     init();
 }
 
@@ -202,6 +203,15 @@ void NewProjectAudioProcessor::userChangedParameter()
 void NewProjectAudioProcessor::update()
 {
     mustUpdateProcessing = false;
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout NewProjectAudioProcessor::createParameters()
+{
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> parameters;
+    
+    // create your parameters
+    
+    return { parameters.begin(), parameters.end() };
 }
 
 //==============================================================================
